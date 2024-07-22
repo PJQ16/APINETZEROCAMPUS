@@ -2,13 +2,446 @@ const express = require('express');
 const { Op } = require("sequelize");
 const app = express();
 
-const { ScopeNumberCateModels, HeadCategoryModels, GwpModels, categoryScopeModels, dataScopeModels, HeadActivityModels } = require('../models/categoryScope');
+const { ScopeNumberCateModels, HeadCategoryModels, GwpModels, categoryScopeModels, dataScopeModels } = require('../models/categoryScope');
 const {ActivityGHGModel} =require('../models/activityYear');
 const {ReportModel} =require('../models/reportModel');
 const conn = require('../connect/con');
 const { PlaceCmuModels,CampusModels } = require('../models/placeAtCmuModels');
 const { QueryTypes } = require('sequelize');
 const eliteral = conn.literal('(kgCO2e) + (CO2 * gwp_CO2) + (Fossil_CH4 * gwp_Fossil_CH4) + (CH4 * gwp_CH4) + (N2O * gwp_N2O) + (SF6 * gwp_SF6) + (NF3 * gwp_NF3) + (HFCs * GWP_HFCs) + (PFCs * GWP_PFCs)');
+
+app.get('/dataDashboard/:selectedYear', async (req, res) => {
+  try {
+    // Run raw query
+    const { selectedYear } = req.params;
+    const query1 = `
+      SELECT count(id) as educational from faculties 
+    `;
+
+    const query2 = `
+      SELECT count(id) as report from reports 
+    `;
+
+      const query3 = `
+      SELECT
+      SUM(quantity * (
+        (kgCO2e) + 
+        (d.CO2 * g.gwp_CO2) + 
+        (d.Fossil_CH4 * g.gwp_Fossil_CH4) + 
+        (d.CH4 * g.gwp_CH4) + 
+        (d.N2O * g.gwp_N2O) + 
+        (d.SF6 * g.gwp_SF6) + 
+        (d.NF3 * g.gwp_NF3) + 
+        (d.HFCs * d.GWP_HFCs) + 
+        (d.PFCs * d.GWP_PFCs)
+      ) / 1000) AS tCO2e 
+      FROM data_scopes AS d 
+      INNER JOIN gwps AS g ON d.GWP_id = g.id
+    `;
+
+    const query4 = `SELECT 
+        d.name, 
+        SUM(quantity * (
+          (kgCO2e) + 
+          (d.CO2 * g.gwp_CO2) + 
+          (d.Fossil_CH4 * g.gwp_Fossil_CH4) + 
+          (d.CH4 * g.gwp_CH4) + 
+          (d.N2O * g.gwp_N2O) + 
+          (d.SF6 * g.gwp_SF6) + 
+          (d.NF3 * g.gwp_NF3) + 
+          (d.HFCs * d.GWP_HFCs) + 
+          (d.PFCs * d.GWP_PFCs)
+        ) / 1000) AS tCO2e 
+      FROM data_scopes AS d 
+      INNER JOIN gwps AS g ON d.GWP_id = g.id
+      INNER JOIN headcategories AS h ON d.head_id = h.id
+      INNER JOIN activityperiods as a ON a.id = d.activityperiod_id 
+      RIGHT JOIN catescopenums AS sn ON h.scopenum_id = sn.id
+      WHERE
+      d.name = :name AND
+      a.years = :years
+      GROUP BY sn.name
+      ORDER BY sn.id
+    `
+
+    const query5 = `
+    SELECT 
+    sn.name, 
+    sn.title,
+    SUM(quantity * (
+      (kgCO2e) + 
+      (d.CO2 * g.gwp_CO2) + 
+      (d.Fossil_CH4 * g.gwp_Fossil_CH4) + 
+      (d.CH4 * g.gwp_CH4) + 
+      (d.N2O * g.gwp_N2O) + 
+      (d.SF6 * g.gwp_SF6) + 
+      (d.NF3 * g.gwp_NF3) + 
+      (d.HFCs * d.GWP_HFCs) + 
+      (d.PFCs * d.GWP_PFCs)
+    ) / 1000) AS tCO2e 
+  FROM data_scopes AS d 
+  INNER JOIN gwps AS g ON d.GWP_id = g.id
+  INNER JOIN headcategories AS h ON d.head_id = h.id
+  INNER JOIN activityperiods as a ON a.id = d.activityperiod_id 
+  RIGHT JOIN catescopenums AS sn ON h.scopenum_id = sn.id
+  WHERE
+  a.years = :years
+  GROUP BY sn.name
+  ORDER BY sn.id
+  `;
+
+  const query6 = `
+  SELECT 
+  csn.name,
+  csn.title,
+  h.id,
+  h.head_name
+FROM 
+  catescopenums as csn 
+INNER JOIN  
+  headcategories as h 
+  ON csn.id = h.scopenum_id 
+INNER JOIN 
+  data_scopes as d 
+  ON h.id = d.head_id
+INNER JOIN 
+  activityperiods as a 
+  ON d.activityperiod_id = a.id
+WHERE
+a.years = :years
+GROUP BY
+h.id,
+  h.head_name,
+  a.years,
+  a.id
+ORDER BY
+  a.years, h.id ASC;
+  `;
+
+
+  const query7 = `
+  SELECT 
+h.head_name,SUM(quantity * (
+      (kgCO2e) + 
+      (d.CO2 * g.gwp_CO2) + 
+      (d.Fossil_CH4 * g.gwp_Fossil_CH4) + 
+      (d.CH4 * g.gwp_CH4) + 
+      (d.N2O * g.gwp_N2O) + 
+      (d.SF6 * g.gwp_SF6) + 
+      (d.NF3 * g.gwp_NF3) + 
+      (d.HFCs * d.GWP_HFCs) + 
+      (d.PFCs * d.GWP_PFCs)
+    ) / 1000) AS tCO2e 
+FROM catescopenums as csn 
+INNER JOIN headcategories as h on csn.id = h.scopenum_id
+INNER JOIN data_scopes as d on h.id = d.head_id
+INNER JOIN gwps as g on d.GWP_id = g.id
+INNER JOIN activityperiods as a on d.activityperiod_id = a.id
+WHERE
+csn.title = 'Scope 1' AND
+a.years = :years
+GROUP BY 
+h.id;
+  `;
+
+
+  const query8 = `
+  SELECT 
+h.head_name,SUM(quantity * (
+      (kgCO2e) + 
+      (d.CO2 * g.gwp_CO2) + 
+      (d.Fossil_CH4 * g.gwp_Fossil_CH4) + 
+      (d.CH4 * g.gwp_CH4) + 
+      (d.N2O * g.gwp_N2O) + 
+      (d.SF6 * g.gwp_SF6) + 
+      (d.NF3 * g.gwp_NF3) + 
+      (d.HFCs * d.GWP_HFCs) + 
+      (d.PFCs * d.GWP_PFCs)
+    ) / 1000) AS tCO2e 
+FROM catescopenums as csn 
+INNER JOIN headcategories as h on csn.id = h.scopenum_id
+INNER JOIN data_scopes as d on h.id = d.head_id
+INNER JOIN gwps as g on d.GWP_id = g.id
+INNER JOIN activityperiods as a on d.activityperiod_id = a.id
+WHERE
+csn.title = 'Scope 2' AND
+a.years = :years
+GROUP BY 
+h.id;
+  `;
+
+
+  const query9 = `
+  SELECT 
+  h.head_name,SUM(quantity * (
+        (kgCO2e) + 
+        (d.CO2 * g.gwp_CO2) + 
+        (d.Fossil_CH4 * g.gwp_Fossil_CH4) + 
+        (d.CH4 * g.gwp_CH4) + 
+        (d.N2O * g.gwp_N2O) + 
+        (d.SF6 * g.gwp_SF6) + 
+        (d.NF3 * g.gwp_NF3) + 
+        (d.HFCs * d.GWP_HFCs) + 
+        (d.PFCs * d.GWP_PFCs)
+      ) / 1000) AS tCO2e 
+  FROM catescopenums as csn 
+  INNER JOIN headcategories as h on csn.id = h.scopenum_id
+  INNER JOIN data_scopes as d on h.id = d.head_id
+  INNER JOIN gwps as g on d.GWP_id = g.id
+  INNER JOIN activityperiods as a on d.activityperiod_id = a.id
+  WHERE
+  csn.title = 'Scope 3' AND
+  a.years = :years
+  GROUP BY 
+  h.id;
+  `;
+
+    const education = await conn.query(query1,{type: QueryTypes.SELECT });
+    const report = await conn.query(query2, { type: QueryTypes.SELECT });
+    const total = await conn.query(query3, { type: QueryTypes.SELECT });
+    const solarCell = await conn.query(query4,{replacements:{name: 'Solar cell', years: selectedYear},type:QueryTypes.SELECT}); 
+    const totalYear = await conn.query(query5,{replacements:{years: selectedYear},type:QueryTypes.SELECT}); 
+    const listHead = await conn.query(query6,{replacements:{years: selectedYear},type:QueryTypes.SELECT}); 
+
+    const scope1 = await conn.query(query7,{replacements:{years: selectedYear},type:QueryTypes.SELECT}); 
+    const scope2 = await conn.query(query8,{replacements:{years: selectedYear},type:QueryTypes.SELECT}); 
+    const scope3 = await conn.query(query9,{replacements:{years: selectedYear},type:QueryTypes.SELECT}); 
+    totalYear.push(...solarCell);
+    const combinedResult = {
+      education,
+      report,
+      total,
+      totalYear,
+      listHead,
+      scope1,
+      scope2,
+      scope3
+    };
+
+    res.status(200).json({ result: combinedResult });
+  } catch (e) {
+    res.status(500).json(e.message);
+  }
+});
+
+app.get('/dataDashboardEducation/:selectedYear&:fac_id', async (req, res) => {
+  try {
+    // Run raw query
+    const { selectedYear,fac_id } = req.params;
+    const query2 = `
+      SELECT COUNT(r.id) AS report 
+      FROM reports AS r
+      INNER JOIN activityperiods AS a ON r.activityperiod_id = a.id 
+      WHERE a.fac_id = :fac_id;
+    `;
+
+      const query3 = `
+      SELECT
+      SUM(quantity * (
+        (kgCO2e) + 
+        (d.CO2 * g.gwp_CO2) + 
+        (d.Fossil_CH4 * g.gwp_Fossil_CH4) + 
+        (d.CH4 * g.gwp_CH4) + 
+        (d.N2O * g.gwp_N2O) + 
+        (d.SF6 * g.gwp_SF6) + 
+        (d.NF3 * g.gwp_NF3) + 
+        (d.HFCs * d.GWP_HFCs) + 
+        (d.PFCs * d.GWP_PFCs)
+      ) / 1000) AS tCO2e 
+      FROM data_scopes AS d 
+      INNER JOIN gwps AS g ON d.GWP_id = g.id
+      WHERE 
+      fac_id = :fac_id;
+    `;
+
+    const query4 = `SELECT 
+        d.name, 
+        SUM(quantity * (
+          (kgCO2e) + 
+          (d.CO2 * g.gwp_CO2) + 
+          (d.Fossil_CH4 * g.gwp_Fossil_CH4) + 
+          (d.CH4 * g.gwp_CH4) + 
+          (d.N2O * g.gwp_N2O) + 
+          (d.SF6 * g.gwp_SF6) + 
+          (d.NF3 * g.gwp_NF3) + 
+          (d.HFCs * d.GWP_HFCs) + 
+          (d.PFCs * d.GWP_PFCs)
+        ) / 1000) AS tCO2e 
+      FROM data_scopes AS d 
+      INNER JOIN gwps AS g ON d.GWP_id = g.id
+      INNER JOIN headcategories AS h ON d.head_id = h.id
+      INNER JOIN activityperiods as a ON a.id = d.activityperiod_id 
+      RIGHT JOIN catescopenums AS sn ON h.scopenum_id = sn.id
+      WHERE
+      d.name = :name AND
+      a.years = :years AND
+      a.fac_id = :fac_id
+      GROUP BY sn.name
+      ORDER BY sn.id
+    `
+
+    const query5 = `
+    SELECT 
+    sn.name, 
+    sn.title,
+    SUM(quantity * (
+      (kgCO2e) + 
+      (d.CO2 * g.gwp_CO2) + 
+      (d.Fossil_CH4 * g.gwp_Fossil_CH4) + 
+      (d.CH4 * g.gwp_CH4) + 
+      (d.N2O * g.gwp_N2O) + 
+      (d.SF6 * g.gwp_SF6) + 
+      (d.NF3 * g.gwp_NF3) + 
+      (d.HFCs * d.GWP_HFCs) + 
+      (d.PFCs * d.GWP_PFCs)
+    ) / 1000) AS tCO2e 
+  FROM data_scopes AS d 
+  INNER JOIN gwps AS g ON d.GWP_id = g.id
+  INNER JOIN headcategories AS h ON d.head_id = h.id
+  INNER JOIN activityperiods as a ON a.id = d.activityperiod_id 
+  RIGHT JOIN catescopenums AS sn ON h.scopenum_id = sn.id
+  WHERE
+  a.years = :years AND
+  a.fac_id = :fac_id
+  GROUP BY sn.name
+  ORDER BY sn.id
+  `;
+
+  const query6 = `
+  SELECT 
+  csn.name,
+  csn.title,
+  h.id,
+  h.head_name
+FROM 
+  catescopenums as csn 
+INNER JOIN  
+  headcategories as h 
+  ON csn.id = h.scopenum_id 
+INNER JOIN 
+  data_scopes as d 
+  ON h.id = d.head_id
+INNER JOIN 
+  activityperiods as a 
+  ON d.activityperiod_id = a.id
+WHERE
+a.years = :years AND
+a.fac_id = :fac_id
+GROUP BY
+h.id,
+  h.head_name,
+  a.years,
+  a.id
+ORDER BY
+  a.years, h.id ASC;
+  `;
+
+
+  const query7 = `
+  SELECT 
+h.head_name,SUM(quantity * (
+      (kgCO2e) + 
+      (d.CO2 * g.gwp_CO2) + 
+      (d.Fossil_CH4 * g.gwp_Fossil_CH4) + 
+      (d.CH4 * g.gwp_CH4) + 
+      (d.N2O * g.gwp_N2O) + 
+      (d.SF6 * g.gwp_SF6) + 
+      (d.NF3 * g.gwp_NF3) + 
+      (d.HFCs * d.GWP_HFCs) + 
+      (d.PFCs * d.GWP_PFCs)
+    ) / 1000) AS tCO2e 
+FROM catescopenums as csn 
+INNER JOIN headcategories as h on csn.id = h.scopenum_id
+INNER JOIN data_scopes as d on h.id = d.head_id
+INNER JOIN gwps as g on d.GWP_id = g.id
+INNER JOIN activityperiods as a on d.activityperiod_id = a.id
+WHERE
+csn.title = 'Scope 1' AND
+a.years = :years AND
+a.fac_id = :fac_id
+GROUP BY 
+h.id;
+  `;
+
+
+  const query8 = `
+  SELECT 
+h.head_name,SUM(quantity * (
+      (kgCO2e) + 
+      (d.CO2 * g.gwp_CO2) + 
+      (d.Fossil_CH4 * g.gwp_Fossil_CH4) + 
+      (d.CH4 * g.gwp_CH4) + 
+      (d.N2O * g.gwp_N2O) + 
+      (d.SF6 * g.gwp_SF6) + 
+      (d.NF3 * g.gwp_NF3) + 
+      (d.HFCs * d.GWP_HFCs) + 
+      (d.PFCs * d.GWP_PFCs)
+    ) / 1000) AS tCO2e 
+FROM catescopenums as csn 
+INNER JOIN headcategories as h on csn.id = h.scopenum_id
+INNER JOIN data_scopes as d on h.id = d.head_id
+INNER JOIN gwps as g on d.GWP_id = g.id
+INNER JOIN activityperiods as a on d.activityperiod_id = a.id
+WHERE
+csn.title = 'Scope 2' AND
+a.years = :years AND
+a.fac_id = :fac_id
+GROUP BY 
+h.id;
+  `;
+
+
+  const query9 = `
+  SELECT 
+  h.head_name,SUM(quantity * (
+        (kgCO2e) + 
+        (d.CO2 * g.gwp_CO2) + 
+        (d.Fossil_CH4 * g.gwp_Fossil_CH4) + 
+        (d.CH4 * g.gwp_CH4) + 
+        (d.N2O * g.gwp_N2O) + 
+        (d.SF6 * g.gwp_SF6) + 
+        (d.NF3 * g.gwp_NF3) + 
+        (d.HFCs * d.GWP_HFCs) + 
+        (d.PFCs * d.GWP_PFCs)
+      ) / 1000) AS tCO2e 
+  FROM catescopenums as csn 
+  INNER JOIN headcategories as h on csn.id = h.scopenum_id
+  INNER JOIN data_scopes as d on h.id = d.head_id
+  INNER JOIN gwps as g on d.GWP_id = g.id
+  INNER JOIN activityperiods as a on d.activityperiod_id = a.id
+  WHERE
+  csn.title = 'Scope 3' AND
+  a.years = :years AND
+  a.fac_id = :fac_id
+  GROUP BY 
+  h.id;
+  `;
+
+    const report = await conn.query(query2, {replacements:{fac_id: fac_id}, type: QueryTypes.SELECT });
+    const total = await conn.query(query3, {replacements:{fac_id: fac_id}, type: QueryTypes.SELECT });
+    const solarCell = await conn.query(query4,{replacements:{name: 'Solar cell', years: selectedYear,fac_id: fac_id},type:QueryTypes.SELECT}); 
+    const totalYear = await conn.query(query5,{replacements:{years: selectedYear,fac_id: fac_id},type:QueryTypes.SELECT}); 
+    const listHead = await conn.query(query6,{replacements:{years: selectedYear,fac_id: fac_id},type:QueryTypes.SELECT}); 
+
+    const scope1 = await conn.query(query7,{replacements:{years: selectedYear,fac_id: fac_id},type:QueryTypes.SELECT}); 
+    const scope2 = await conn.query(query8,{replacements:{years: selectedYear,fac_id: fac_id},type:QueryTypes.SELECT}); 
+    const scope3 = await conn.query(query9,{replacements:{years: selectedYear,fac_id: fac_id},type:QueryTypes.SELECT}); 
+    totalYear.push(...solarCell);
+    const combinedResult = {
+      report,
+      total,
+      totalYear,
+      listHead,
+      scope1,
+      scope2,
+      scope3
+    };
+
+    res.status(200).json({ result: combinedResult });
+  } catch (e) {
+    res.status(500).json(e.message);
+  }
+});
 
 app.get('/netzero', async (req, res) => {
   try {
@@ -29,12 +462,98 @@ app.get('/netzero', async (req, res) => {
       FROM data_scopes AS d 
       INNER JOIN gwps AS g ON d.GWP_id = g.id
       INNER JOIN headcategories AS h ON d.head_id = h.id
+      INNER JOIN activityperiods as a ON a.id = d.activityperiod_id 
       RIGHT JOIN catescopenums AS sn ON h.scopenum_id = sn.id
       GROUP BY sn.name
       ORDER BY sn.id
     `;
     
-    const datas = await conn.query(query, { type: QueryTypes.SELECT });
+    const datas = await conn.query(query,{type: QueryTypes.SELECT });
+
+    const api = datas.map(data => ({
+      name: data.name,
+      tCO2e: data.tCO2e
+    }));
+
+    res.status(200).json({'result' : api});
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/netzero/:years', async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        sn.name, 
+        SUM(quantity * (
+          (kgCO2e) + 
+          (d.CO2 * g.gwp_CO2) + 
+          (d.Fossil_CH4 * g.gwp_Fossil_CH4) + 
+          (d.CH4 * g.gwp_CH4) + 
+          (d.N2O * g.gwp_N2O) + 
+          (d.SF6 * g.gwp_SF6) + 
+          (d.NF3 * g.gwp_NF3) + 
+          (d.HFCs * d.GWP_HFCs) + 
+          (d.PFCs * d.GWP_PFCs)
+        ) / 1000) AS tCO2e 
+      FROM data_scopes AS d 
+      INNER JOIN gwps AS g ON d.GWP_id = g.id
+      INNER JOIN headcategories AS h ON d.head_id = h.id
+      INNER JOIN activityperiods as a ON a.id = d.activityperiod_id 
+      RIGHT JOIN catescopenums AS sn ON h.scopenum_id = sn.id
+      WHERE
+      a.years = ?
+      GROUP BY sn.name
+      ORDER BY sn.id
+    `;
+    
+    const datas = await conn.query(query,{replacements: [req.params.years],  type: QueryTypes.SELECT });
+
+    const api = datas.map(data => ({
+      name: data.name,
+      tCO2e: data.tCO2e
+    }));
+
+    res.status(200).json({'result' : api});
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/netzeroUniversity/:id/:years', async (req, res) => {
+  try {
+    const query = `
+    SELECT 
+    sn.name, 
+    SUM(quantity * (
+      (kgCO2e) + 
+      (d.CO2 * g.gwp_CO2) + 
+      (d.Fossil_CH4 * g.gwp_Fossil_CH4) + 
+      (d.CH4 * g.gwp_CH4) + 
+      (d.N2O * g.gwp_N2O) + 
+      (d.SF6 * g.gwp_SF6) + 
+      (d.NF3 * g.gwp_NF3) + 
+      (d.HFCs * d.GWP_HFCs) + 
+      (d.PFCs * d.GWP_PFCs)
+    ) / 1000) AS tCO2e 
+  FROM data_scopes AS d 
+  INNER JOIN gwps AS g ON d.GWP_id = g.id
+  INNER JOIN headcategories AS h ON d.head_id = h.id
+  INNER JOIN activityperiods as a ON d.activityperiod_id = a.id
+  INNER JOIN faculties as f on a.fac_id = f.id
+  RIGHT JOIN catescopenums AS sn ON h.scopenum_id = sn.id
+  where 
+  f.id = ? AND
+  a.years = ?
+  GROUP BY sn.name
+  ORDER BY sn.id;
+    `;
+    
+    const datas = await conn.query(query, {
+      replacements:[req.params.id, req.params.years],
+      type: QueryTypes.SELECT
+    });
 
     const api = datas.map(data => ({
       name: data.name,
@@ -56,10 +575,96 @@ app.get('/netzeroListyear', async (req, res) => {
     INNER JOIN headcategories as h on d.head_id = h.id
     RIGHT JOIN catescopenums as sn on h.scopenum_id = sn.id
     LEFT JOIN activityperiods as a on d.activityperiod_id = a.id
+    GROUP BY sn.id, a.years ASC`;
+
+    const datas = await conn.query(query, {type: QueryTypes.SELECT });
+
+    // Group data by years
+    const result = datas.reduce((acc, curr) => {
+      // Find the existing year group
+      let yearGroup = acc.find(group => group.years === curr.years);
+      
+      // If not found, create a new group
+      if (!yearGroup) {
+        yearGroup = { years: curr.years, datascope: [] };
+        acc.push(yearGroup);
+      }
+      
+      // Add the current data to the datascope arrays
+      yearGroup.datascope.push({
+        name: curr.name,
+        tCO2e: curr.tCO2e === null ? 0 : parseFloat(curr.tCO2e)  // Convert null to 0 and string to float
+      });
+      
+      return acc;
+    }, []);
+
+    res.status(200).json(result);
+  } catch (e) {
+    res.status(500).json(e.message);
+  }
+});
+
+
+app.get('/netzeroListyear/:years', async (req, res) => {
+  try {
+    const query = `
+    SELECT sn.name, sum(quantity * ((kgCO2e) + (d.CO2 * g.gwp_CO2) + (d.Fossil_CH4 * g.gwp_Fossil_CH4) + (d.CH4 * g.gwp_CH4) + (d.N2O * g.gwp_N2O) + (d.SF6 * g.gwp_SF6) + (d.NF3 * g.gwp_NF3) + (d.HFCs * d.GWP_HFCs) + (d.PFCs * d.GWP_PFCs))/1000) as tCO2e, a.years FROM data_scopes as d 
+    INNER JOIN gwps as g on d.GWP_id = g.id
+    INNER JOIN headcategories as h on d.head_id = h.id
+    RIGHT JOIN catescopenums as sn on h.scopenum_id = sn.id
+    LEFT JOIN activityperiods as a on d.activityperiod_id = a.id
+    WHERE 
+    a.years = ?
     GROUP BY sn.id, a.years;
     `;
 
-    const datas = await conn.query(query, { type: QueryTypes.SELECT });
+    const datas = await conn.query(query, {replacements:[req.params.years] ,type: QueryTypes.SELECT });
+
+    // Group data by years
+    const result = datas.reduce((acc, curr) => {
+      // Find the existing year group
+      let yearGroup = acc.find(group => group.years === curr.years);
+      
+      // If not found, create a new group
+      if (!yearGroup) {
+        yearGroup = { years: curr.years, datascope: [] };
+        acc.push(yearGroup);
+      }
+      
+      // Add the current data to the datascope arrays
+      yearGroup.datascope.push({
+        name: curr.name,
+        tCO2e: curr.tCO2e === null ? 0 : parseFloat(curr.tCO2e)  // Convert null to 0 and string to float
+      });
+      
+      return acc;
+    }, []);
+
+    res.status(200).json(result);
+  } catch (e) {
+    res.status(500).json(e.message);
+  }
+});
+
+
+app.get('/netzeroListyearUniversity/:id/:years', async (req, res) => {
+  try {
+    const query = `
+    SELECT sn.name, sum(quantity * ((kgCO2e) + (d.CO2 * g.gwp_CO2) + (d.Fossil_CH4 * g.gwp_Fossil_CH4) + (d.CH4 * g.gwp_CH4) + (d.N2O * g.gwp_N2O) + (d.SF6 * g.gwp_SF6) + (d.NF3 * g.gwp_NF3) + (d.HFCs * d.GWP_HFCs) + (d.PFCs * d.GWP_PFCs))/1000) as tCO2e, a.years FROM data_scopes as d 
+    INNER JOIN gwps as g on d.GWP_id = g.id
+    INNER JOIN headcategories as h on d.head_id = h.id
+    RIGHT JOIN catescopenums as sn on h.scopenum_id = sn.id
+    LEFT JOIN activityperiods as a on d.activityperiod_id = a.id
+    INNER JOIN faculties as f on a.fac_id = f.id
+    WHERE
+    f.id = ? AND
+    a.years = ?
+    GROUP BY sn.id, a.years
+	  ORDER BY a.years,sn.id ASC;
+    `;
+
+    const datas = await conn.query(query, { replacements: [req.params.id,req.params.years], type: QueryTypes.SELECT });
 
     // Group data by years
     const result = datas.reduce((acc, curr) => {
@@ -614,7 +1219,7 @@ app.get('/scope/datasocpe/:activityperiod_id', async (req, res) => {
         attributes:['id','name'],
         include:[{
           model:HeadCategoryModels,
-          attributes:['id','head_name'],
+          attributes:['id','head_name','head_title'],
           include:[{
             model:dataScopeModels,
             attributes: [
@@ -662,7 +1267,7 @@ app.get('/scope/datasocpeTester/:id', async (req, res) => {
       attributes: ['id', 'name'],
       include: [{
         model: HeadCategoryModels,
-        attributes: ['id', 'head_name']
+        attributes: ['id', 'head_name','head_title']
       }]
     });
      
@@ -873,7 +1478,7 @@ app.get('/headscope/:id',async(req,res)=>{
 app.get('/headscope', async (req, res) => {
   try {
     const ShowData = await HeadCategoryModels.findAll({
-      attributes:['id','head_name','scopenum_id'],
+      attributes:['id','head_name','head_title','scopenum_id'],
       order: [
         ['scopenum_id', 'ASC'],
         ['id', 'ASC']
@@ -1176,6 +1781,21 @@ app.post('/scope/addCategoryScope',async(req,res)=>{
     }
 });
 
+app.post('/datascope/insertData', async (req, res) => {
+  try {
+    const { name, lci, sources, GWP_id, head_id, fac_id, campus_id, activityperiod_id } = req.body;
+    
+    if (!name || !lci || !sources || !GWP_id || !head_id || !fac_id || !campus_id || !activityperiod_id) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    const addData = await dataScopeModels.create(req.body);
+    res.status(200).json(addData);
+  } catch (e) {
+    res.status(500).json({ message: 'Server Error', error: e.message });
+  }
+});
+
 
 
 app.put('/scope/updateCategoryScope/:id',async(req,res)=>{
@@ -1203,6 +1823,43 @@ app.delete('/catescopeDelete/:id',async(req,res)=>{
       res.status(500).json('Server Error' + e.message);
   }
 });
+
+app.delete('/data_scope/deletehead', async (req, res) => {
+  try {
+    const { id, headId } = req.body;
+
+    // ลบข้อมูล
+    const removeData = await dataScopeModels.destroy({
+      where: {
+        activityperiod_id: id,
+        head_id: headId
+      }
+    });
+
+    res.status(200).json({ message: 'Data removed successfully' });
+  } catch (e) {
+    res.status(500).json({ error: 'Server Error: ' + e.message });
+  }
+});
+
+
+app.delete('/data_scope/deleteLIst', async (req, res) => {
+  try {
+    const { listId } = req.body;
+
+    // ลบข้อมูล
+    const removeData = await dataScopeModels.destroy({
+      where: {
+        id: listId,
+      }
+    });
+
+    res.status(200).json({ message: 'Data removed successfully' });
+  } catch (e) {
+    res.status(500).json({ error: 'Server Error: ' + e.message });
+  }
+});
+
 
 
 //เพิิ่ม DataScope
@@ -1550,8 +2207,7 @@ app.put('/datascope/pullDataFuel/:id',async(req,res)=>{
       where: {
         head_id: 8,
         [Op.or]: [
-          { name: 'Electricity from PEA' },
-          { name: 'Electricity from Private Company' }
+          { name: 'การซื้อไฟฟ้าจากระบบสายส่ง (MEA/PEA)' }
         ],
         activityperiod_id: req.params.id
       },
@@ -1566,7 +2222,7 @@ const updateData = combinedData.map(data => ({
   quantity: data.quantity, // ใช้ค่าที่คำนวณไว้ล่วงหน้าเป็นค่าใหม่สำหรับ quantity
   // เพิ่มเงื่อนไข WHERE เพื่อให้อัพเดทเฉพาะข้อมูลที่มีชื่อและเดือนตรงกัน
   where: {
-    head_id:11,
+    head_id:43,
     name: data.name,
     activityperiod_id: data.activityperiod_id
   }
@@ -1580,7 +2236,7 @@ for (const data of updateData) {
   const separateUpdate = await dataScopeModels.findAll({
     where:{
       name:{
-        [Op.in]: ['Biodiesel', 'Biogas', 'Biomass'],
+        [Op.in]: ['ไบโอดีเซล (Biodiesel)', 'ก๊าซชีวภาพ (Biogas)', 'ไม้ (Wood)'],
       },
       activityperiod_id: req.params.id,
       head_id: {
@@ -1606,11 +2262,11 @@ for (const data of updateData) {
   const separateUpdate3 = await dataScopeModels.findAll({
     where:{
       name:{
-        [Op.in]: ['Biodiesel', 'Biogas'],
+        [Op.in]: ['แก๊สโซฮอล์ E10 (Gasohol 91/95)', 'แก๊สโซฮอล์ E20 (Gasohol: E20)','แก๊สโซฮอล์ E85 (Gasohol: E85)','ไบโอดีเซล (Biodiesel)'],
       },
       activityperiod_id: req.params.id,
       head_id: {
-        [Op.eq]: 3, // ใช้ Op.eq แทนเพื่อให้ Sequelize รู้ว่าเป็นเงื่อนไขที่เท่ากัน
+        [Op.eq]: 2, // ใช้ Op.eq แทนเพื่อให้ Sequelize รู้ว่าเป็นเงื่อนไขที่เท่ากัน
       },
     }
   })
@@ -1634,7 +2290,7 @@ for (const data of updateData) {
     where:{
       activityperiod_id: req.params.id,
       head_id: {
-        [Op.eq]: 7, // ใช้ Op.eq แทนเพื่อให้ Sequelize รู้ว่าเป็นเงื่อนไขที่เท่ากัน
+        [Op.eq]: 3, // ใช้ Op.eq แทนเพื่อให้ Sequelize รู้ว่าเป็นเงื่อนไขที่เท่ากัน
       },
     }
   })
@@ -1680,7 +2336,7 @@ for (const data of updateData) {
       ],
       where: {
         activityperiod_id: req.params.id,
-        head_id: 28
+        head_id: 24
       },
       group: ["name"],
       order: [['id', 'ASC']]
@@ -1697,6 +2353,32 @@ for (const data of updateData) {
   for (const dataSeparate33 of separateSyncData33) {
     await dataScopeModels.update({ quantity: dataSeparate33.quantity }, { where: dataSeparate33.where });
   } 
+
+  //สำหรับรายงานแยก 56
+  const separateUpdate56 = await dataScopeModels.findAll({
+    where:{
+      name:{
+        [Op.in]: ['สุกร', 'โคนม','โคเนื้อ','ไก่','ควาย','แกะ','แพะ','ม้า'],
+      },
+      activityperiod_id: req.params.id,
+      head_id: {
+        [Op.eq]: 55, // ใช้ Op.eq แทนเพื่อให้ Sequelize รู้ว่าเป็นเงื่อนไขที่เท่ากัน
+      },
+    }
+  })
+
+  const separateSyncData56  = separateUpdate56.map(data =>({
+    quantity: data.quantity,
+    where: {
+      head_id:56,
+      name: data.name,
+      activityperiod_id: data.activityperiod_id
+    } 
+  }))
+
+  for (const dataSeparate56 of separateSyncData56) {
+    await dataScopeModels.update({ quantity: dataSeparate56.quantity }, { where: dataSeparate56.where });
+  }
 
 
     res.status(200).json('update successfully');

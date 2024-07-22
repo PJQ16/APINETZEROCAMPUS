@@ -89,7 +89,7 @@ app.get('/users/showUserApi', Service.isLogin, async (req, res) => {
     const payLoad = jwt.decode(Service.getToken(req));
     
     const users = await UsersModels.findByPk(payLoad.userId, {
-      attributes: ['id', 'fname', 'sname', 'email'],
+      attributes: ['fname', 'sname', 'email'],
       include: [
         {
           model: RoleModels,
@@ -375,7 +375,7 @@ app.post('/users/Addrole',async(req,res)=>{
  *           type: string
  */
 
-app.post('/users/Addusers',Service.isLogin, async (req, res) => {
+app.post('/users/Addusers', async (req, res) => {
     try {
         const { fname, sname, email, password, role_id, fac_id } = req.body;
         const AddData = await UsersModels.create({

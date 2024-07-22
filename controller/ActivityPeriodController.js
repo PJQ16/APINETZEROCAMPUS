@@ -56,13 +56,14 @@ app.get('/activity/showPeriod/:fac_id',async(req,res)=>{
  *     tags: [Activity Period]
 */
 //แสดงข้อมููลหน้าinfo
-app.get('/activity/showPeriod/:fac_id/:years',async(req,res)=>{
+app.get('/activity/showPeriod/:fac_id/:years/:id',async(req,res)=>{
    try{
       const ShowData = await ActivityGHGModel.findAll({
-         attributes:['id','years','employee_amount','building_area'],
+         attributes:['id','years','employee_amount','building_area','campus_report','student_amount','total_area'],
          where:{
             fac_id:req.params.fac_id,
-            years:req.params.years
+            years:req.params.years,
+            id:req.params.id
          },
          include:[
             {
@@ -286,6 +287,18 @@ app.post('/activity/AddPeriod',async(req,res)=>{
 })
 
 
+
+app.post('/createAcivity/addPeriod',async(req,res)=>{
+   try{
+         
+         const AddDataActivity = await ActivityGHGModel.create(req.body);
+
+ res.status(200).json(AddDataActivity);
+   }catch(e){
+      res.status(500).json('Server Error ' + e.message);
+   }
+})
+
 /**
  * @swagger
  * /activity/modifyDataPeriod/:id:
@@ -298,10 +311,10 @@ app.put('/activity/modifyDataPeriod/:id',async(req,res)=>{
    try{
 
       const id = req.params.id;
-      const { employee_amount, building_area } = req.body;
+      const { employee_amount, building_area, student_amount, total_area,status_activity } = req.body;
    
       const [updatedRowsCount, updatedRows] = await ActivityGHGModel.update(
-         { employee_amount, building_area },
+         { employee_amount, building_area,student_amount,total_area,status_activity },
          { where: { id } }
        );
 

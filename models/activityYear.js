@@ -12,14 +12,30 @@ const ActivityGHGModel = conn.define('activityperiod',{
         type: DataTypes.INTEGER(4),
         allowNull:false
     },
+    campus_report:{
+      type: DataTypes.TEXT,
+      allowNull:true
+    },
     employee_amount:{
         type:DataTypes.INTEGER(11),
         defaultValue:0
     },
+    student_amount:{
+      type:DataTypes.INTEGER(11),
+      defaultValue:0
+  },
     building_area:{
         type:DataTypes.DECIMAL(9,2),
         defaultValue:0
     },
+    total_area:{
+      type:DataTypes.DECIMAL(9,2),
+      defaultValue:0
+  },
+  total_area:{
+    type:DataTypes.DECIMAL(9,2),
+    defaultValue:0
+  },
     status_base_year:{
       type: DataTypes.BOOLEAN,
       defaultValue:false

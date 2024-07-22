@@ -14,6 +14,10 @@ const {ActivityGHGModel} = require('../models/activityYear')
                         type: DataTypes.STRING(255),
                         allowNull:false
                       },
+                      title: {
+                        type: DataTypes.STRING(255),
+                        allowNull:true
+                      },
                     });
                     
                     const GwpModels = conn.define('gwp', {
@@ -62,6 +66,10 @@ const {ActivityGHGModel} = require('../models/activityYear')
                       head_name: {
                         type: DataTypes.STRING(255),
                         allowNull:false
+                      },
+                      head_title:{
+                        type: DataTypes.TEXT,
+                        allowNull:true
                       },
                       scopenum_id:{
                         type: DataTypes.INTEGER(11),
@@ -139,44 +147,55 @@ const {ActivityGHGModel} = require('../models/activityYear')
                       },
                       quantity:{
                         type: DataTypes.DECIMAL(10,2),
-                        defaultValue:0
+                        defaultValue:0,
                       },
                       lci: {
                         type: DataTypes.STRING(10),
                         allowNull: false
                       },
                       CO2: {
-                        type: DataTypes.DECIMAL(6, 4)
+                        type: DataTypes.DECIMAL(6, 4),
+                        defaultValue:0
                       },
                       Fossil_CH4: {
-                        type: DataTypes.DECIMAL(6, 4)
+                        type: DataTypes.DECIMAL(6, 4),
+                        defaultValue:0
                       },
                       CH4: {
-                        type: DataTypes.DECIMAL(6, 4)
+                        type: DataTypes.DECIMAL(6, 4),
+                        defaultValue:0
                       },
                       N2O:{
-                        type: DataTypes.DECIMAL(6, 4)
+                        type: DataTypes.DECIMAL(6, 4),
+                        defaultValue:0
                       },
                       SF6: {
-                        type: DataTypes.DECIMAL(6, 4)
+                        type: DataTypes.DECIMAL(6, 4),
+                        defaultValue:0
                       },
                       NF3: {
-                        type: DataTypes.DECIMAL(6, 4)
+                        type: DataTypes.DECIMAL(6, 4),
+                        defaultValue:0
                       },
                       HFCs: {
-                        type: DataTypes.DECIMAL(9, 4)
+                        type: DataTypes.DECIMAL(9, 4),
+                        defaultValue:0
                       },
                       PFCs: {
-                        type: DataTypes.DECIMAL(9, 4)
+                        type: DataTypes.DECIMAL(9, 4),
+                        defaultValue:0
                       },
                       GWP_HFCs: {
-                        type: DataTypes.DECIMAL(9, 4)
+                        type: DataTypes.DECIMAL(9, 4),
+                        defaultValue:0
                       },
                       GWP_PFCs: {
-                        type: DataTypes.DECIMAL(9, 4)
+                        type: DataTypes.DECIMAL(9, 4),
+                        defaultValue:0,
                       },
                       kgCO2e: {
-                        type: DataTypes.DECIMAL(9, 4)
+                        type: DataTypes.DECIMAL(9, 4),
+                        defaultValue:0,
                       },
                       sources: {
                         type: DataTypes.STRING(255),
