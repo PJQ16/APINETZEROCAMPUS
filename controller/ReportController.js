@@ -1181,5 +1181,149 @@ app.get('/test203/:id',async(req,res)=>{
     }
 })
 
+app.get('/report/api/:id',async(req,res)=>{
+    try{
+        const data1 =  `SELECT h.head_name,SUM(quantity * (
+            (kgCO2e) + 
+            (d.CO2 * g.gwp_CO2) + 
+            (d.Fossil_CH4 * g.gwp_Fossil_CH4) + 
+            (d.CH4 * g.gwp_CH4) + 
+            (d.N2O * g.gwp_N2O) + 
+            (d.SF6 * g.gwp_SF6) + 
+            (d.NF3 * g.gwp_NF3) + 
+            (d.HFCs * d.GWP_HFCs) + 
+            (d.PFCs * d.GWP_PFCs)
+          ) / 1000) AS tCO2e  FROM catescopenums as csn
+    INNER JOIN headcategories as h on csn.id = h.scopenum_id
+    INNER JOIN data_scopes as d on h.id = d.head_id
+    INNER JOIN activityperiods as a on d.activityperiod_id = a.id
+    INNER JOIN gwps as g on d.GWP_id = g.id
+    where 
+    csn.id = :id_csn AND 
+    a.id = :id
+    GROUP BY 
+    h.head_name
+    ORDER BY
+    h.id
+    ASC;`;
+
+    const data2 =  `SELECT h.head_name,SUM(quantity * (
+        (kgCO2e) + 
+        (d.CO2 * g.gwp_CO2) + 
+        (d.Fossil_CH4 * g.gwp_Fossil_CH4) + 
+        (d.CH4 * g.gwp_CH4) + 
+        (d.N2O * g.gwp_N2O) + 
+        (d.SF6 * g.gwp_SF6) + 
+        (d.NF3 * g.gwp_NF3) + 
+        (d.HFCs * d.GWP_HFCs) + 
+        (d.PFCs * d.GWP_PFCs)
+      ) / 1000) AS tCO2e  FROM catescopenums as csn
+INNER JOIN headcategories as h on csn.id = h.scopenum_id
+INNER JOIN data_scopes as d on h.id = d.head_id
+INNER JOIN activityperiods as a on d.activityperiod_id = a.id
+INNER JOIN gwps as g on d.GWP_id = g.id
+where 
+csn.id = :id_csn AND 
+a.id = :id
+GROUP BY 
+h.head_name
+ORDER BY
+h.id
+ASC;`;
+
+const data3 =  `SELECT h.head_name,SUM(quantity * (
+    (kgCO2e) + 
+    (d.CO2 * g.gwp_CO2) + 
+    (d.Fossil_CH4 * g.gwp_Fossil_CH4) + 
+    (d.CH4 * g.gwp_CH4) + 
+    (d.N2O * g.gwp_N2O) + 
+    (d.SF6 * g.gwp_SF6) + 
+    (d.NF3 * g.gwp_NF3) + 
+    (d.HFCs * d.GWP_HFCs) + 
+    (d.PFCs * d.GWP_PFCs)
+  ) / 1000) AS tCO2e  FROM catescopenums as csn
+INNER JOIN headcategories as h on csn.id = h.scopenum_id
+INNER JOIN data_scopes as d on h.id = d.head_id
+INNER JOIN activityperiods as a on d.activityperiod_id = a.id
+INNER JOIN gwps as g on d.GWP_id = g.id
+where 
+csn.id = :id_csn AND 
+a.id = :id
+GROUP BY 
+h.head_name
+ORDER BY
+h.id
+ASC;`;
+
+const data4 =  `SELECT h.head_name,SUM(quantity * (
+    (kgCO2e) + 
+    (d.CO2 * g.gwp_CO2) + 
+    (d.Fossil_CH4 * g.gwp_Fossil_CH4) + 
+    (d.CH4 * g.gwp_CH4) + 
+    (d.N2O * g.gwp_N2O) + 
+    (d.SF6 * g.gwp_SF6) + 
+    (d.NF3 * g.gwp_NF3) + 
+    (d.HFCs * d.GWP_HFCs) + 
+    (d.PFCs * d.GWP_PFCs)
+  ) / 1000) AS tCO2e  FROM catescopenums as csn
+INNER JOIN headcategories as h on csn.id = h.scopenum_id
+INNER JOIN data_scopes as d on h.id = d.head_id
+INNER JOIN activityperiods as a on d.activityperiod_id = a.id
+INNER JOIN gwps as g on d.GWP_id = g.id
+where 
+csn.id = :id_csn AND 
+a.id = :id
+GROUP BY 
+h.head_name
+ORDER BY
+h.id
+ASC;`;
+
+const data5 =  `SELECT h.head_name,SUM(quantity * (
+    (kgCO2e) + 
+    (d.CO2 * g.gwp_CO2) + 
+    (d.Fossil_CH4 * g.gwp_Fossil_CH4) + 
+    (d.CH4 * g.gwp_CH4) + 
+    (d.N2O * g.gwp_N2O) + 
+    (d.SF6 * g.gwp_SF6) + 
+    (d.NF3 * g.gwp_NF3) + 
+    (d.HFCs * d.GWP_HFCs) + 
+    (d.PFCs * d.GWP_PFCs)
+  ) / 1000) AS tCO2e  FROM catescopenums as csn
+INNER JOIN headcategories as h on csn.id = h.scopenum_id
+INNER JOIN data_scopes as d on h.id = d.head_id
+INNER JOIN activityperiods as a on d.activityperiod_id = a.id
+INNER JOIN gwps as g on d.GWP_id = g.id
+where 
+csn.id = :id_csn AND 
+a.id = :id
+GROUP BY 
+h.head_name
+ORDER BY
+h.id
+ASC;`;
+
+
+        const scope1 = await conn.query(data1, { replacements:{id_csn: 1,id:req.params.id}, type: QueryTypes.SELECT });
+        const scope2 = await conn.query(data2, { replacements:{id_csn: 2,id:req.params.id}, type: QueryTypes.SELECT });
+        const scope3 = await conn.query(data3, { replacements:{id_csn: 3,id:req.params.id}, type: QueryTypes.SELECT });
+        const separate = await conn.query(data4, { replacements:{id_csn: 4,id:req.params.id}, type: QueryTypes.SELECT });
+        const removal = await conn.query(data5, { replacements:{id_csn: 5,id:req.params.id}, type: QueryTypes.SELECT });
+    
+
+        const combinedResult = {
+          
+            scope1,
+            scope2,
+            scope3,
+            separate,
+            removal
+ 
+          };
+        res.status(200).json({result :combinedResult});
+    }catch(e){
+        res.status(500).json('Error Server' + e.message);
+    }
+});
 
 module.exports = app

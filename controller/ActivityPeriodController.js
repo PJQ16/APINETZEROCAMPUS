@@ -47,6 +47,30 @@ app.get('/activity/showPeriod/:fac_id',async(req,res)=>{
    }
 })
 
+
+
+app.get('/activity/area/:id', async (req, res) => {
+   try {
+      // ค้นหาเรคคอร์ดที่มี Primary Key เป็น req.params.id
+      const ShowData = await ActivityGHGModel.findOne({
+         where: { id: req.params.id }, // ใช้ where แทน findByPk
+         attributes: ['total_area'] // เลือกเฉพาะฟิลด์ total_area
+      });
+
+      if (ShowData) {
+         // ถ้าพบข้อมูล
+         res.status(200).json({ total_area: ShowData.total_area }); // ส่งข้อมูลในรูปแบบ { total_area: value }
+      } else {
+         // ถ้าไม่พบข้อมูล
+         res.status(404).json({ message: 'Data not found' });
+      }
+   } catch (e) {
+      // ส่งข้อผิดพลาดของเซิร์ฟเวอร์
+      res.status(500).json({ message: 'Server Error', error: e.message });
+   }
+});
+
+
 /**
  * @swagger
  * /activity/showPeriod/:fac_id/:years:
@@ -299,6 +323,9 @@ app.post('/createAcivity/addPeriod',async(req,res)=>{
    }
 })
 
+
+
+
 /**
  * @swagger
  * /activity/modifyDataPeriod/:id:
@@ -328,6 +355,25 @@ app.put('/activity/modifyDataPeriod/:id',async(req,res)=>{
        res.status(500).json({ message: 'Server Error', error: e.message });
      }
    });
+
+
+   app.put('/activity/statusActivity/:id',async(req,res)=>{
+      try{
+   
+         const id = req.params.id;
+         const {status_activity } = req.body;
+      
+          await ActivityGHGModel.update(
+            { status_activity },
+            { where: { id } }
+          );
+
+            res.status(200).json({ message: 'Update successful' });
+        } catch (e) {
+          console.error('Error:', e.message);
+          res.status(500).json({ message: 'Server Error', error: e.message });
+        }
+      });
 
    app.put('/activity/check/:id',async(req,res)=>{
       try{
