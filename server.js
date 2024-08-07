@@ -60,7 +60,9 @@ app.use(require('./controller/ImageFileController'));
 app.use(require('./controller/UncertaintyController'));
 app.use(require('./controller/SignificanceController'));
 app.use(require('./controller/ReportController'));
-app.use(require('./controller/GoogleMapController'))
+app.use(require('./controller/GoogleMapController'));
+app.use(require('./controller/ForgotPasswordController'));
+app.use(require('./controller/VerificationController'));
 //oauth
 /* app.use(require('./auth/oauth')); */
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));

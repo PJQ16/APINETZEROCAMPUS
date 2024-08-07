@@ -8,9 +8,119 @@ const nodemailer = require('nodemailer');
 app.use(express.json());
 require('dotenv').config();
 const Service = require('../controller/Service');
+const crypto = require('crypto');
+const { Op } = require('sequelize');
 
 const {RoleModels,UsersModels} = require('../models/userModel');
 const {PlaceCmuModels, CampusModels} = require('../models/placeAtCmuModels');
+
+app.get('/verify/:token', async (req, res) => {
+  const { token } = req.params;
+  try {
+      const user = await UsersModels.findOne({
+          where: {
+              verificationToken: token,
+              verificationTokenExpiry: {
+                  [Op.gt]: new Date() // Check if token is not expired
+              }
+          }
+      });
+
+      if (!user) {
+          return res.status(400).json({ error: 'Invalid or expired token' });
+      }
+
+      user.isVerified = 1;
+      user.verificationToken = null;
+      user.verificationTokenExpiry = null;
+      await user.save();
+
+      res.status(200).json({ message: 'Email verified successfully' });
+  } catch (error) {
+      res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+//ลืมพลาส
+app.post('/api/auth/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  try{
+    // ค้นหาผู้ใช้ที่มีอีเมลนี้
+    const user = await UsersModels.findOne({ where: { email } });
+    if (!user) {
+      return res.status(400).send('User with this email does not exist.');
+    }
+
+    // สร้าง token และ URL สำหรับการรีเซ็ตรหัสผ่าน
+    const token = crypto.randomBytes(20).toString('hex');
+    const resetUrl = `${process.env.BASE_URL}/reset-password?token=${token}`;
+
+    // บันทึก token และวันหมดอายุในฐานข้อมูล
+    user.verificationToken = token;
+    user.verificationTokenExpiry = Date.now() + 3600000; // 1 ชั่วโมง
+    await user.save();
+
+    // สร้าง transporter สำหรับการส่งอีเมล
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
+    });
+ 
+    // สร้าง mailOptions
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'Password Reset Net Zero Campus',
+      html: `
+      <h1 align="center">Net Zero Campus<h1>
+      <p>Click <a href="${resetUrl}">here</a> to reset your password.</p>`
+    };
+
+
+    await transporter.sendMail(mailOptions);
+
+    res.status(200).json('Successfully sending email');
+    }catch(e){
+      res.status(500).json('Server Error' + e.message)
+    }
+
+});
+
+//เปลี่ยนpassword 
+app.post('/api/auth/reset-password', async (req, res) => {
+  const { token, password } = req.body;
+
+  try {
+      const user = await UsersModels.findOne({
+          where: {
+              verificationToken: token,
+              verificationTokenExpiry: {
+                  [Op.gt]: Date.now()
+              }
+          }
+      });
+
+      if (!user) {
+          return res.status(400).send('Token is invalid or has expired.');
+      }
+
+      // แฮชรหัสผ่านใหม่
+      const hash = await bcrypt.hash(password, 10);
+      user.password = hash;
+      user.verificationToken = null;
+      user.verificationTokenExpiry = null;
+      await user.save();
+
+      res.status(200).send('Password has been reset successfully!');
+  } catch (error) {
+      console.error(error);
+      res.status(500).send('Error resetting password');
+  }
+});
+
 
   //แสดงข้อมูลuser และ บทบาท หน่วยงานที่สังกัด
   /**
@@ -375,21 +485,96 @@ app.post('/users/Addrole',async(req,res)=>{
  *           type: string
  */
 
-app.post('/users/Addusers', async (req, res) => {
-    try {
-        const { fname, sname, email, password, role_id, fac_id } = req.body;
-        const AddData = await UsersModels.create({
-            fname,
-            sname,
-            email, 
-            password, 
-            role_id, 
-            fac_id
-        })
-        res.status(200).json({ message: 'Success', data : AddData });
-    } catch (e) {
-        res.status(500).json({ message: 'Server Error', error: e.message });
+app.post('/users/resend-verification', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const user = await UsersModels.findOne({
+      attributes: ['fname', 'sname', 'email','verificationToken'], // ตรวจสอบให้แน่ใจว่า attributes นี้ตรงกับโมเดลของคุณ
+      where: {
+        email: email,
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
+
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
+    });
+
+    const verificationUrl = `http://localhost:3000/netzero-CUPT/verify/${user.verificationToken}`;
+
+    await transporter.sendMail({
+      to: user.email,
+      subject: `เรียนคุณ ${user.fname} ${user.sname},`,
+      html: `
+        <p>ขอบคุณที่ลงทะเบียนกับเรา! เพื่อเปิดใช้งานบัญชีของคุณให้เต็มรูปแบบ โปรดยืนยันที่อยู่อีเมลของคุณโดยคลิกที่ลิงค์ด้านล่าง:</p>
+        <p>Please verify your email by clicking this link: <a href="${verificationUrl}">Verify Email</a></p>
+        <p>เราหวังว่าคุณจะมีประสบการณ์ที่ดีที่สุดกับบริการของเรา!</p>
+        <p>ด้วยความเคารพ,</p>
+        <p>NET ZERO CAMPUS</p>
+        <p>______________________________________________________________________</p>
+        <p>ข้อความนี้ถูกสร้างขึ้นโดยอัตโนมัติ โปรดอย่าตอบกลับ</p>
+      `
+    });
+
+    res.status(200).json({ message: 'Send verification email successfully.' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+
+app.post('/users/Addusers', async (req, res) => {
+  const { fname, sname, email, password, role_id, fac_id } = req.body;
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
+    }
+  });
+
+  try {
+    const token = crypto.randomBytes(32).toString('hex');
+    const user = await UsersModels.create({
+      fname,
+      sname,
+      email,
+      password,  // Password will be hashed automatically
+      role_id,
+      fac_id,
+      verificationToken: token,
+      verificationTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+    });
+
+    const verificationUrl = `http://localhost:3000/netzero-CUPT/verify/${token}`;
+
+    await transporter.sendMail({
+      to: email,
+      subject: `เรียนคุณ ${fname} ${sname},`,
+      html: `<p >ขอบคุณที่ลงทะเบียนกับเรา! เพื่อเปิดใช้งานบัญชีของคุณให้เต็มรูปแบบ โปรดยืนยันที่อยู่อีเมลของคุณโดยคลิกที่ลิงค์ด้านล่าง:</p>
+      <p>Please verify your email by clicking this link: <a href="${verificationUrl}">Verify Email</a></p>
+      <p>เราหวังว่าคุณจะมีประสบการณ์ที่ดีที่สุดกับบริการของเรา!</p>
+      <p> ด้วยความเคารพ,</p>
+      <p>NET ZERO CAMPUS</p>
+      <p>______________________________________________________________________</p>
+      <p>ข้อความนี้ถูกสร้างขึ้นโดยอัตโนมัติ โปรดอย่าตอบกลับ</p>
+      `
+    });
+
+    res.status(201).json({ message: 'User registered. Please verify your email.' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
 /**
@@ -466,11 +651,19 @@ app.post('/users/login', async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
+      
+
         const isPasswordValid = await bcrypt.compare(password, user.password);
 
         if (!isPasswordValid) {
             return res.status(401).json({ error: 'Invalid password' });
         }
+
+        if (!user.isVerified) {
+          return res.status(403).json({ error: 'Email not verified' });
+      }
+
+
 
         // Create JWT token
         const secretKey = process.env.SECRET_KEY; // Replace with your actual secret key

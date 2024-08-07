@@ -19,8 +19,9 @@ app.get('/dataDashboard/:selectedYear', async (req, res) => {
     `;
 
     const query2 = `
-      SELECT count(id) as report from reports 
-    `;
+    SELECT COUNT(a.id) AS report 
+      FROM activityperiods AS a
+      WHERE a.status_activity = 3`;
 
       const query3 = `
       SELECT
@@ -229,10 +230,10 @@ app.get('/dataDashboardEducation/:selectedYear&:fac_id', async (req, res) => {
     // Run raw query
     const { selectedYear,fac_id } = req.params;
     const query2 = `
-      SELECT COUNT(r.id) AS report 
-      FROM reports AS r
-      INNER JOIN activityperiods AS a ON r.activityperiod_id = a.id 
-      WHERE a.fac_id = :fac_id;
+      SELECT COUNT(a.id) AS report 
+      FROM activityperiods AS a
+      WHERE a.fac_id = :fac_id AND 
+      a.status_activity = :status
     `;
 
       const query3 = `
@@ -417,7 +418,7 @@ h.id;
   h.id;
   `;
 
-    const report = await conn.query(query2, {replacements:{fac_id: fac_id}, type: QueryTypes.SELECT });
+    const report = await conn.query(query2, {replacements:{fac_id: fac_id,status:3}, type: QueryTypes.SELECT });
     const total = await conn.query(query3, {replacements:{fac_id: fac_id}, type: QueryTypes.SELECT });
     const solarCell = await conn.query(query4,{replacements:{name: 'Solar cell', years: selectedYear,fac_id: fac_id},type:QueryTypes.SELECT}); 
     const totalYear = await conn.query(query5,{replacements:{years: selectedYear,fac_id: fac_id},type:QueryTypes.SELECT}); 
@@ -1215,7 +1216,7 @@ app.get('/checkExistingData/:id', async (req, res) => {
 */
 app.get('/scope/datasocpe/:activityperiod_id', async (req, res) => {
   try {
-      const result = await ScopeNumberCateModels.findAll({
+      const data = await ScopeNumberCateModels.findAll({
         attributes:['id','name'],
         include:[{
           model:HeadCategoryModels,
@@ -1243,8 +1244,24 @@ app.get('/scope/datasocpe/:activityperiod_id', async (req, res) => {
           }]
         }]
       }
-      
       );
+      
+    const activityPeriod =  await ActivityGHGModel.findOne(
+        {
+          attributes:['status_activity'],
+          where:{
+            id:req.params.activityperiod_id
+          }
+        }
+      )
+      
+      const result = [
+        ...data.map(item => ({
+          ...item.toJSON(), // แปลง Sequelize instance เป็นอ็อบเจ็กต์ JSON
+          status_activity: activityPeriod ? activityPeriod.status_activity : null
+        }))
+      ];
+  
       res.status(200).json(result);
   } catch (e) {
       res.status(500).json('Server Error ' + e.message);
@@ -2453,6 +2470,15 @@ app.get('/dataDashboard', async (req, res) => {
     res.status(500).json('Server Error ' + e.message);
   }
 });
+
+app.get('/api/forgettest',async(req,res)=>{
+  try{
+    res.send('hola');
+
+  }catch(e){
+    res.status(500).json(e.message + ('error server')); 
+  }
+})
 
 
 module.exports = app;

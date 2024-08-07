@@ -4,6 +4,7 @@ const { ActivityGHGModel } = require('../models/activityYear');
 const { PlaceCmuModels, CampusModels} = require('../models/placeAtCmuModels')
 const {ScopeNumberCateModels,ScopeNumberModels,categoryScopeModels,dataScopeModels, HeadCategoryModels, HeadActivityModels} = require('../models/categoryScope')
 const conn = require('../connect/con')
+const { QueryTypes } = require('sequelize');
 
 /**
  * @swagger
@@ -83,7 +84,7 @@ app.get('/activity/area/:id', async (req, res) => {
 app.get('/activity/showPeriod/:fac_id/:years/:id',async(req,res)=>{
    try{
       const ShowData = await ActivityGHGModel.findAll({
-         attributes:['id','years','employee_amount','building_area','campus_report','student_amount','total_area'],
+         attributes:['id','years','employee_amount','building_area','status_activity','campus_report','student_amount','total_area'],
          where:{
             fac_id:req.params.fac_id,
             years:req.params.years,
@@ -397,4 +398,44 @@ app.put('/activity/modifyDataPeriod/:id',async(req,res)=>{
         }
       });
 
+      app.get('/amountReport', async (req, res) => {
+         try {
+           const query1 = `
+             SELECT a.status_activity, f.fac_name,a.updatedAt
+             FROM activityperiods AS a
+             INNER JOIN faculties AS f ON a.fac_id = f.id
+             WHERE a.status_activity = :id
+             GROUP BY a.status_activity, f.fac_name
+             ORDER BY MAX(a.updatedAt) DESC
+             LIMIT 8
+           `;
+           
+           const total = await conn.query(query1, {replacements:{id:3},type: QueryTypes.SELECT });
+           res.status(200).json({ result: total });
+         } catch (e) {
+           res.status(500).json({ error: e.message + ' - server error' });
+         }
+       });    
+
+
+       app.get('/universityReport/:fac_id', async (req, res) => {
+         try {
+           const query1 = `
+           SELECT a.status_activity,a.campus_report,a.updatedAt
+           FROM activityperiods AS a
+           INNER JOIN faculties AS f ON a.fac_id = f.id
+           WHERE a.status_activity = :id AND
+           a.fac_id = :fac_id
+
+           GROUP BY a.status_activity, f.fac_name
+           ORDER BY MAX(a.updatedAt) DESC
+           LIMIT 8;
+           `;
+           
+           const total = await conn.query(query1, {replacements:{id:3,fac_id:req.params.fac_id},type: QueryTypes.SELECT });
+           res.status(200).json({ result: total });
+         } catch (e) {
+           res.status(500).json({ error: e.message + ' - server error' });
+         }
+       });  
 module.exports = app

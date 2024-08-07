@@ -1326,4 +1326,21 @@ ASC;`;
     }
 });
 
+app.get('/checkStatusReport/:activity_id',async(req,res)=>{
+    try{
+        const result = await ActivityGHGModel.findOne(
+            {   
+                attributes:['status_activity'],
+                where:{
+                    id:req.params.activity_id
+                }
+            }
+        )
+
+        res.status(200).json({result});
+    }catch(e){
+        res.status(500).json('Error Server' + e.message);
+    }
+})
+
 module.exports = app

@@ -1,7 +1,9 @@
 const { DataTypes } = require('sequelize');
 const conn = require('../connect/con')
 const {PlaceCmuModels} = require('../models/placeAtCmuModels');
-const bcrypt = require('bcrypt'); 
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
 
 const RoleModels = conn.define('role',{
     id: {
@@ -49,6 +51,18 @@ const UsersModels = conn.define('user', {
                       fac_id:{
                         type: DataTypes.STRING(255),
                         allowNull: false,
+                      },
+                      verificationToken: {
+                        type: DataTypes.STRING(255),
+                        allowNull: true,
+                      },
+                      verificationTokenExpiry: {
+                        type: DataTypes.DATE,
+                        allowNull: true,
+                      },
+                      isVerified: {
+                        type: DataTypes.TINYINT(1), // TINYINT(1) for boolean-like behavior
+                        defaultValue: 0 // Default value is 0 (false)
                       }
                     
                     });
@@ -65,7 +79,7 @@ const UsersModels = conn.define('user', {
                         user.password = hash;
                       });
 
- UsersModels.sync(     /* {alter:true}   */   );
+ UsersModels.sync(       {alter:true}      );
  RoleModels.sync(   /*   {alter:true}   */   );
 
  module.exports = {UsersModels,RoleModels}
