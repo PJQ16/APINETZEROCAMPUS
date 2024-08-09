@@ -2224,7 +2224,7 @@ app.put('/datascope/pullDataFuel/:id',async(req,res)=>{
       where: {
         head_id: 8,
         [Op.or]: [
-          { name: 'การซื้อไฟฟ้าจากระบบสายส่ง (MEA/PEA)' }
+          { name: 'ไฟฟ้าที่ซื้อจากระบบสายส่ง (MEA/PEA)' }
         ],
         activityperiod_id: req.params.id
       },
@@ -2252,9 +2252,6 @@ for (const data of updateData) {
 //สำหรับรายงานแยก1
   const separateUpdate = await dataScopeModels.findAll({
     where:{
-      name:{
-        [Op.in]: ['ไบโอดีเซล (Biodiesel)', 'ก๊าซชีวภาพ (Biogas)', 'ไม้ (Wood)'],
-      },
       activityperiod_id: req.params.id,
       head_id: {
         [Op.eq]: 1, // ใช้ Op.eq แทนเพื่อให้ Sequelize รู้ว่าเป็นเงื่อนไขที่เท่ากัน
@@ -2278,9 +2275,6 @@ for (const data of updateData) {
   //สำหรับรายงานแยก 3
   const separateUpdate3 = await dataScopeModels.findAll({
     where:{
-      name:{
-        [Op.in]: ['แก๊สโซฮอล์ E10 (Gasohol 91/95)', 'แก๊สโซฮอล์ E20 (Gasohol: E20)','แก๊สโซฮอล์ E85 (Gasohol: E85)','ไบโอดีเซล (Biodiesel)'],
-      },
       activityperiod_id: req.params.id,
       head_id: {
         [Op.eq]: 2, // ใช้ Op.eq แทนเพื่อให้ Sequelize รู้ว่าเป็นเงื่อนไขที่เท่ากัน
@@ -2325,7 +2319,7 @@ for (const data of updateData) {
     await dataScopeModels.update({ quantity: dataSeparate7.quantity }, { where: dataSeparate7.where });
   }
 
-   //สำหรับรายงานแยก 33
+   //สำหรับรายงานแยก ซากสัตว์
     const separateUpdate33 = await dataScopeModels.findAll({
       attributes: [
         'id',
@@ -2353,7 +2347,7 @@ for (const data of updateData) {
       ],
       where: {
         activityperiod_id: req.params.id,
-        head_id: 24
+        head_id: 13
       },
       group: ["name"],
       order: [['id', 'ASC']]
@@ -2371,15 +2365,12 @@ for (const data of updateData) {
     await dataScopeModels.update({ quantity: dataSeparate33.quantity }, { where: dataSeparate33.where });
   } 
 
-  //สำหรับรายงานแยก 56
+  //สำหรับเลี้ยงสัตว์
   const separateUpdate56 = await dataScopeModels.findAll({
     where:{
-      name:{
-        [Op.in]: ['สุกร', 'โคนม','โคเนื้อ','ไก่','ควาย','แกะ','แพะ','ม้า'],
-      },
       activityperiod_id: req.params.id,
       head_id: {
-        [Op.eq]: 55, // ใช้ Op.eq แทนเพื่อให้ Sequelize รู้ว่าเป็นเงื่อนไขที่เท่ากัน
+        [Op.eq]: 11, // ใช้ Op.eq แทนเพื่อให้ Sequelize รู้ว่าเป็นเงื่อนไขที่เท่ากัน
       },
     }
   })
@@ -2387,7 +2378,7 @@ for (const data of updateData) {
   const separateSyncData56  = separateUpdate56.map(data =>({
     quantity: data.quantity,
     where: {
-      head_id:56,
+      head_id:12,
       name: data.name,
       activityperiod_id: data.activityperiod_id
     } 
@@ -2395,6 +2386,29 @@ for (const data of updateData) {
 
   for (const dataSeparate56 of separateSyncData56) {
     await dataScopeModels.update({ quantity: dataSeparate56.quantity }, { where: dataSeparate56.where });
+  }
+
+  //สำหรับจัดการของเสีย
+  const separateUpdateWasteM = await dataScopeModels.findAll({
+    where:{
+      activityperiod_id: req.params.id,
+      head_id: {
+        [Op.eq]: 15, // ใช้ Op.eq แทนเพื่อให้ Sequelize รู้ว่าเป็นเงื่อนไขที่เท่ากัน
+      },
+    }
+  })
+
+  const separateSyncDataWasteM  = separateUpdateWasteM.map(data =>({
+    quantity: data.quantity,
+    where: {
+      head_id:35,
+      name: data.name,
+      activityperiod_id: data.activityperiod_id
+    } 
+  }))
+
+  for (const dataSeparateWasteM of separateSyncDataWasteM) {
+    await dataScopeModels.update({ quantity: dataSeparateWasteM.quantity }, { where: dataSeparateWasteM.where });
   }
 
 

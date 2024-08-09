@@ -50,6 +50,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     if (!user) {
       return res.status(400).send('User with this email does not exist.');
     }
+    
 
     // สร้าง token และ URL สำหรับการรีเซ็ตรหัสผ่าน
     const token = crypto.randomBytes(20).toString('hex');
@@ -73,10 +74,15 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: email,
-      subject: 'Password Reset Net Zero Campus',
+      subject: `เรียนคุณ ${user.fname} ${user.sname} Password Reset Net Zero Campus,`,
       html: `
-      <h1 align="center">Net Zero Campus<h1>
-      <p>Click <a href="${resetUrl}">here</a> to reset your password.</p>`
+      <h1>Net Zero Campus</h1>
+      <p>คุณได้ร้องขอการตั้งค่ารหัสผ่านใหม่สำหรับบัญชี ${user.email}</p>
+      <p>Click <a href="${resetUrl}">here</a> to reset your password.</p>
+      <p> ด้วยความเคารพ,</p>
+      <p>NET ZERO CAMPUS</p>
+      <p>______________________________________________________________________</p>
+      <p>ข้อความนี้ถูกสร้างขึ้นโดยอัตโนมัติ โปรดอย่าตอบกลับ</p>`
     };
 
 
@@ -105,8 +111,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
 
       if (!user) {
           return res.status(400).send('Token is invalid or has expired.');
-      }
-
+      } 
       // แฮชรหัสผ่านใหม่
       const hash = await bcrypt.hash(password, 10);
       user.password = hash;
