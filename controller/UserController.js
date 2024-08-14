@@ -48,7 +48,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     // ค้นหาผู้ใช้ที่มีอีเมลนี้
     const user = await UsersModels.findOne({ where: { email } });
     if (!user) {
-      return res.status(400).send('User with this email does not exist.');
+      return res.status(400).json({error:'User with this email does not exist'});
     }
     
 

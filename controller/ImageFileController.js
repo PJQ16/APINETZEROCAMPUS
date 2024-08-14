@@ -127,6 +127,31 @@ app.post('/uploadImages', uploads, async (req, res) => {
 });
 
 
+app.delete('/uploadImages/:id', async (req, res) => {
+    try {
+        const  id  = req.params.id;
+        const imageFile = await ImageFileModel.findByPk(id);
+
+         if (imageFile?.file_name) {
+            fs.unlink('./uploads/'+imageFile.file_name,(err)=>{
+                if(err){
+                    res.status(404).json(err)
+                }else{
+                    res.status(200).json('Delete image is successfully')
+                }
+            });
+        }
+       
+        await ImageFileModel.destroy({ where: { id: id } });
+            res.status(200).json({ message: 'File deleted successfully' }); 
+
+    } catch (e) {
+        console.error('Server Error:', e.message);
+        res.status(500).json({ message: 'Server Error', error: e.message });
+    }
+});
+
+
 
 
 module.exports = app
