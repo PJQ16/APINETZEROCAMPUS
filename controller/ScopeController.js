@@ -38,6 +38,9 @@ app.get('/dataDashboard/:selectedYear', async (req, res) => {
       ) / 1000) AS tCO2e 
       FROM data_scopes AS d 
       INNER JOIN gwps AS g ON d.GWP_id = g.id
+      INNER JOIN activityperiods as a on d.activityperiod_id = a.id
+      where 
+      a.status_activity = 3
     `;
 
     const query4 = `SELECT 
@@ -60,7 +63,8 @@ app.get('/dataDashboard/:selectedYear', async (req, res) => {
       RIGHT JOIN catescopenums AS sn ON h.scopenum_id = sn.id
       WHERE
       d.name = :name AND
-      a.years = :years
+      a.years = :years AND
+      a.status_activity = 3
       GROUP BY sn.name
       ORDER BY sn.id
     `
@@ -86,7 +90,8 @@ app.get('/dataDashboard/:selectedYear', async (req, res) => {
   INNER JOIN activityperiods as a ON a.id = d.activityperiod_id 
   RIGHT JOIN catescopenums AS sn ON h.scopenum_id = sn.id
   WHERE
-  a.years = :years
+  a.years = :years AND
+  a.status_activity = 3
   GROUP BY sn.name
   ORDER BY sn.id
   `;
@@ -109,7 +114,8 @@ INNER JOIN
   activityperiods as a 
   ON d.activityperiod_id = a.id
 WHERE
-a.years = :years
+a.years = :years AND
+a.status_activity = 3
 GROUP BY
 h.id,
   h.head_name,
@@ -140,7 +146,8 @@ INNER JOIN gwps as g on d.GWP_id = g.id
 INNER JOIN activityperiods as a on d.activityperiod_id = a.id
 WHERE
 csn.title = 'Scope 1' AND
-a.years = :years
+a.years = :years AND
+a.status_activity = 3
 GROUP BY 
 h.id;
   `;
@@ -166,7 +173,8 @@ INNER JOIN gwps as g on d.GWP_id = g.id
 INNER JOIN activityperiods as a on d.activityperiod_id = a.id
 WHERE
 csn.title = 'Scope 2' AND
-a.years = :years
+a.years = :years AND
+a.status_activity = 3
 GROUP BY 
 h.id;
   `;
@@ -192,7 +200,8 @@ h.id;
   INNER JOIN activityperiods as a on d.activityperiod_id = a.id
   WHERE
   csn.title = 'Scope 3' AND
-  a.years = :years
+  a.years = :years AND
+  a.status_activity = 3
   GROUP BY 
   h.id;
   `;
@@ -251,8 +260,10 @@ app.get('/dataDashboardEducation/:selectedYear&:fac_id', async (req, res) => {
       ) / 1000) AS tCO2e 
       FROM data_scopes AS d 
       INNER JOIN gwps AS g ON d.GWP_id = g.id
+      INNER JOIN activityperiods AS a on d.activityperiod_id = a.id
       WHERE 
-      fac_id = :fac_id;
+       a.status_activity = 3 AND
+       a.fac_id = :fac_id 
     `;
 
     const query4 = `SELECT 
@@ -276,7 +287,8 @@ app.get('/dataDashboardEducation/:selectedYear&:fac_id', async (req, res) => {
       WHERE
       d.name = :name AND
       a.years = :years AND
-      a.fac_id = :fac_id
+      a.fac_id = :fac_id AND
+      a.status_activity = 3
       GROUP BY sn.name
       ORDER BY sn.id
     `
@@ -303,7 +315,8 @@ app.get('/dataDashboardEducation/:selectedYear&:fac_id', async (req, res) => {
   RIGHT JOIN catescopenums AS sn ON h.scopenum_id = sn.id
   WHERE
   a.years = :years AND
-  a.fac_id = :fac_id
+  a.fac_id = :fac_id AND
+  a.status_activity = 3
   GROUP BY sn.name
   ORDER BY sn.id
   `;
@@ -327,7 +340,8 @@ INNER JOIN
   ON d.activityperiod_id = a.id
 WHERE
 a.years = :years AND
-a.fac_id = :fac_id
+a.fac_id = :fac_id AND
+a.status_activity = 3
 GROUP BY
 h.id,
   h.head_name,
@@ -359,7 +373,8 @@ INNER JOIN activityperiods as a on d.activityperiod_id = a.id
 WHERE
 csn.title = 'Scope 1' AND
 a.years = :years AND
-a.fac_id = :fac_id
+a.fac_id = :fac_id AND
+a.status_activity = 3
 GROUP BY 
 h.id;
   `;
@@ -386,7 +401,8 @@ INNER JOIN activityperiods as a on d.activityperiod_id = a.id
 WHERE
 csn.title = 'Scope 2' AND
 a.years = :years AND
-a.fac_id = :fac_id
+a.fac_id = :fac_id AND
+a.status_activity = 3
 GROUP BY 
 h.id;
   `;
@@ -413,7 +429,8 @@ h.id;
   WHERE
   csn.title = 'Scope 3' AND
   a.years = :years AND
-  a.fac_id = :fac_id
+  a.fac_id = :fac_id AND
+  a.status_activity = 3
   GROUP BY 
   h.id;
   `;
